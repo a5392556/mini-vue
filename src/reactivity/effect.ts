@@ -39,8 +39,8 @@ export function track(target, key) {
         depsMap.set(key, dep);
     }
     if (dep.has(activeEffect)) return;
-    activeEffect.deps.push(dep);
     dep.add(activeEffect);
+    activeEffect.deps.push(dep);
 }
 // 触发依赖
 export function trigger(target, key) {
