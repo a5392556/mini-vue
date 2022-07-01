@@ -60,11 +60,7 @@ describe('effect', () => {
         });
         obj.prop = 2;
         expect(dummy).toBe(2);
-        // runner.effect
-        console.log('-----', runner.effect.deps[0].size);
         stop(runner);
-        console.log('-----', runner.effect.deps[0].size);
-
         // obj.prop = 3;
         obj.prop++;
         expect(dummy).toBe(2);
@@ -74,21 +70,21 @@ describe('effect', () => {
         expect(dummy).toBe(3);
     });
 
-    // it("onStop", () => {
-    //     const obj = reactive({
-    //         foo: 1,
-    //     });
-    //     const onStop = jest.fn();
-    //     let dummy;
-    //     const runner = effect(
-    //         () => {
-    //             dummy = obj.foo;
-    //         },
-    //         {
-    //             onStop,
-    //         }
-    //     );
-    //     stop(runner);
-    //     expect(onStop).toBeCalledTimes(1);
-    // });
+    it("onStop", () => {
+        const obj = reactive({
+            foo: 1,
+        });
+        const onStop = jest.fn();
+        let dummy;
+        const runner = effect(
+            () => {
+                dummy = obj.foo;
+            },
+            {
+                onStop,
+            }
+        );
+        stop(runner);
+        expect(onStop).toBeCalledTimes(1);
+    });
 });
