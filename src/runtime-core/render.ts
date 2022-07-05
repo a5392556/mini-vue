@@ -1,4 +1,4 @@
-import { isObject } from "../shared";
+import { ShapeFlags } from "../shared/ShapeFlags";
 import { createComponentInstance, setupComponent } from "./component";
 
 export function render(vnode, container) {
@@ -11,11 +11,12 @@ function patch(vnode, container) {
     // yes processElement
     // no processComponent
     const {
-        type
+        type,
+        shapeFlag
     } = vnode;
-    if (typeof type === 'string') {
+    if (shapeFlag & ShapeFlags.ELEMENT) {
         processElement(vnode, container);
-    } else if (isObject(type)) {
+    } else if (shapeFlag & ShapeFlags.STATAFUL_COMPONENT) {
         processComponent(vnode, container);
     }
 }
@@ -36,16 +37,24 @@ function mountElement(initalVNode: any, container: any) {
     const {
         type,
         children,
-        props
+        props,
+        shapeFlag
     } = initalVNode;
     const el = initalVNode.el = document.createElement(type);
-    if (typeof children === 'string') {
+    if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
         el.textContent = children;
-    } else if (Array.isArray(children)) {
-        mountChild(initalVNode, el)
+    } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+        mountChild(initalVNode, el);
     }
+    const isOn = name => /^on[A-Z]/.test(name);
     for (const key in props) {
-        el.setAttribute(key, props[key]);
+        if (isOn(key)) {
+            const event = key.slice(2).toLowerCase();
+            el.addEventListener(event, props[key]);
+        } else {
+            el.setAttribute(key, props[key]);
+
+        }
     }
     container.append(el);
 }
