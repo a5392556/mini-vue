@@ -53,7 +53,6 @@ function mountElement(initalVNode: any, container: any) {
             el.addEventListener(event, props[key]);
         } else {
             el.setAttribute(key, props[key]);
-
         }
     }
     container.append(el);

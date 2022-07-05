@@ -23,14 +23,104 @@ function getShapeFlag(type) {
     return typeof type === 'string' ? 1 /* ShapeFlags.ELEMENT */ : 2 /* ShapeFlags.STATAFUL_COMPONENT */;
 }
 
+const extend = Object.assign;
+const isObject = val => {
+    return val !== null && typeof val === 'object';
+};
+const hasOwn = (target, key) => Object.prototype.hasOwnProperty.call(target, key);
+
+const targetMap = new Map();
+// 触发依赖
+function trigger(target, key) {
+    let depsMap = targetMap.get(target);
+    if (!depsMap)
+        return;
+    let dep = depsMap.get(key);
+    if (!dep)
+        return;
+    triggerEffect(dep);
+}
+function triggerEffect(dep) {
+    for (const effect of dep) {
+        effect.scheduler ? effect.scheduler() : effect.run();
+    }
+}
+
+function createGetter(isReadonly = false, shallow = false) {
+    return function (target, key) {
+        const res = Reflect.get(target, key);
+        // TODO 收集依赖
+        if (key === ReactiveFlags.IS_REACTIVE)
+            return !isReadonly;
+        else if (key === ReactiveFlags.IS_READONLY)
+            return isReadonly;
+        if (shallow)
+            return res;
+        if (isObject(res)) {
+            return isReadonly ? readonly(res) : reactive(res);
+        }
+        return res;
+    };
+}
+function createSetter() {
+    return function (target, key, value, receiver) {
+        const res = Reflect.set(target, key, value, receiver);
+        // TODO 触发依赖
+        trigger(target, key);
+        return res;
+    };
+}
+const get = createGetter();
+const set = createSetter();
+const readonlyGet = createGetter(true);
+const shallowReadonlyGet = createGetter(true, true);
+const mutableHandlers = {
+    get,
+    set
+};
+const readonlyHandlers = {
+    get: readonlyGet,
+    set(target, key, value, receiver) {
+        console.error(`${target[key]} is readonly!`);
+        return true;
+    }
+};
+const shallowReadOnlyHandlers = extend({}, readonlyHandlers, {
+    get: shallowReadonlyGet
+});
+
+var ReactiveFlags;
+(function (ReactiveFlags) {
+    ReactiveFlags["IS_REACTIVE"] = "_v_is_reactive";
+    ReactiveFlags["IS_READONLY"] = "_v_is_readonly";
+})(ReactiveFlags || (ReactiveFlags = {}));
+function reactive(raw) {
+    return createActiveObject(raw, mutableHandlers);
+}
+function readonly(raw) {
+    return createActiveObject(raw, readonlyHandlers);
+}
+function shallowReadOnly(raw) {
+    return createActiveObject(raw, shallowReadOnlyHandlers);
+}
+function createActiveObject(raw, baseHandlers) {
+    if (!isObject(raw)) {
+        console.warn(`${raw} is not object!`);
+        return raw;
+    }
+    return new Proxy(raw, baseHandlers);
+}
+
 const publicPropertiesMap = {
     $el: i => i.vnode.el
 };
 const publicInstanceProxyHanders = {
     get({ _: instance }, key) {
-        const { setupState } = instance;
-        if (key in setupState)
+        const { setupState, props } = instance;
+        if (hasOwn(setupState, key))
             return setupState[key];
+        if (hasOwn(props, key))
+            return props[key];
         if (key === '$el') {
             return instance.vnode.el;
         }
@@ -44,13 +134,14 @@ function createComponentInstance(vnode) {
     const component = {
         vnode,
         type: vnode.type,
-        setupState: {}
+        setupState: {},
+        props: {}
     };
     return component;
 }
 function setupComponent(instance) {
     // TODO
-    // initProps();
+    initProps(instance);
     // initSlots();
     instance.proxy = new Proxy({ _: instance }, publicInstanceProxyHanders);
     setupStatefulComponent(instance);
@@ -59,7 +150,7 @@ function setupStatefulComponent(instance) {
     const component = instance.type;
     const { setup } = component;
     if (setup) {
-        const setupResult = setup();
+        const setupResult = setup(shallowReadOnly(instance.props));
         handelSetupResult(instance, setupResult);
     }
 }
@@ -75,6 +166,9 @@ function finishComponentSetup(instance) {
     const component = instance.type;
     if (component.render)
         instance.render = component.render;
+}
+function initProps(instance) {
+    instance.props = instance.vnode.props || {};
 }
 
 function render(vnode, container) {
