@@ -2,12 +2,13 @@
   "name": "mini-vue",
   "version": "1.0.0",
   "description": "",
-  "main": "guide-mini-vue.cjs.js",
+  "main": "lib/guide-mini-vue.cjs.js",
   "module": "lib/guide-mini-vue.esm.js",
   "scripts": {
     "test": "jest",
     "build": "rollup -c rollup.config.js",
-    "pack": "rollup -c rollup.config.js --watch"
+    "pack": "rollup -c rollup.config.js --watch",
+    "server": "http-server"
   },
   "repository": {
     "type": "git",
