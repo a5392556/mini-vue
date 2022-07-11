@@ -12,8 +12,9 @@ function patchProp(el, key,oldVal ,newVal) {
         else el.setAttribute(key, newVal);
     }
 }
-function insert(el, container) {
-    container.append(el);
+function insert(child, parent, anchor) {
+    // console.log(anchor)
+    parent.insertBefore(child, anchor);
 }
 
 function setElementText(el, text) {
