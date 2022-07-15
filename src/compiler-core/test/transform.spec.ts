@@ -7,7 +7,7 @@ describe('tarsform', () => {
         const ast = baseParse("<div>hi,{{message}}</div>");
         const plugin = (node) => {
             if (node.type === NodeTypes.TEXT) {
-                node.content += 'mini-vue';
+                node.content = node.content + 'mini-vue';
             }
         }
         transform(ast, {
