@@ -54,6 +54,10 @@ function handelSetupResult(instance: any, setupResult: any) {
 
 function finishComponentSetup(instance: any) {
     const component = instance.type;
+    // 如果用户有自定义 render, 则不适用自身定义的, 例如 canvas
+    if(compiler && !component.render) {
+        component.render = compiler(component.template);
+    }
     if (component.render) instance.render = component.render;
 }
 
@@ -65,5 +69,10 @@ export function setCurrentInstance(instance) {
     currentInstance = instance;
 }
 
+
+let compiler;
+export function registerRuntimeCompiler(_compiler) {
+    compiler = _compiler;
+}
 
 

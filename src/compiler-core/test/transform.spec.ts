@@ -11,7 +11,7 @@ describe('tarsform', () => {
             }
         }
         transform(ast, {
-            nodeTransform: [plugin]
+            nodeTransforms: [plugin]
         });
         const nodeText = ast.children[0].children[0];
         expect(nodeText.content).toBe('hi,mini-vue')

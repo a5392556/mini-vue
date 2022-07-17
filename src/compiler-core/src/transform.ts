@@ -9,28 +9,53 @@ export function transform(root, options?: any) {
 }
 
 function traverseNode(node, context) {
-    context.nodeTransform.forEach(fn => {
-        fn(node);
-    });
+    const type: NodeTypes = node.type;
 
-    switch (node.type) {
-        case NodeTypes.INTERPOLATION:
-            context.helper(TO_DISPLAY_STRING);
-            break;
-        case NodeTypes.ROOT: 
-        case NodeTypes.ELEMENT:
-            traverseChildren(node, context);
-            break;
-        default:
-            break;
+    // 遍历调用所有的 nodeTransforms
+    // 把 node 给到 transform
+    // 用户可以对 node 做处理
+    const nodeTransforms = context.nodeTransforms;
+    const exitFns: any = [];
+    for (let i = 0; i < nodeTransforms.length; i++) {
+      const transform = nodeTransforms[i];
+  
+      const onExit = transform(node, context);
+      if (onExit) {
+        exitFns.push(onExit);
+      }
+    }
+  
+    switch (type) {
+      case NodeTypes.INTERPOLATION:
+        // 插值的点，在于后续生成 render 代码的时候是获取变量的值
+        context.helper(TO_DISPLAY_STRING);
+        break;
+  
+      case NodeTypes.ROOT:
+      case NodeTypes.ELEMENT:
+  
+        traverseChildren(node, context);
+        break;
+  
+      default:
+        break;
+    }
+  
+  
+  
+    let i = exitFns.length;
+    // i-- 这个很巧妙
+    // 使用 while 是要比 for 快 (可以使用 https://jsbench.me/ 来测试一下)
+    while (i--) {
+      exitFns[i]();
     }
 }
 
 function createTransformContext(root, options) {
-    
+
     const context = {
         root,
-        nodeTransform: options?.nodeTransform || [],
+        nodeTransforms: options?.nodeTransforms || [],
         helpers: new Map(),
         helper(key) {
             context.helpers.set(key, 1);
@@ -48,5 +73,19 @@ function traverseChildren(node, context) {
 }
 
 function createRootCodegen(root: any) {
-    root.codegenNode = root.children[0];
+    const { children } = root;
+
+    // 只支持有一个根节点
+    // 并且还是一个 single text node
+    const child = children[0];
+
+    if (child.type === NodeTypes.ELEMENT && child.codegenNode) {
+        const codegenNode = child.codegenNode;
+        root.codegenNode = codegenNode;
+    } else {
+        root.codegenNode = child;
+    }
+
+    // root.codegenNode = child;
+    
 }

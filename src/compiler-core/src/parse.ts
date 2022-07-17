@@ -33,8 +33,6 @@ function parseElement(context: any, ancestor): any {
     ancestor.push(element);
     element.children = parseChildren(context, ancestor);
     ancestor.pop();
-    // console.log(element.tag);
-    // console.log(context.source.slice(2, 2 + context.source.length));
     if (startsWidthEndTagOpen(context.source, element.tag)) {
         parseTag(context, TagType.END);
     } else {
